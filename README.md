@@ -20,7 +20,7 @@ The script need to have installed **python-etcd** on your system as requirement.
 
 - Input
 ```
-./etcd_parser.py parameters-boae.cfg
+./etcd_parser.py sample_params_file.cfg
 ```
 
 - Output
