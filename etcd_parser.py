@@ -31,7 +31,7 @@ class BashDict(dict):
 
 class EtcdParser(object):
     '''
-    This script will parse all key=value from OSP parameters file from Produban
+    This script will parse all key=value from a shell file
     and upload it to the correct namespace inside of ETCD
     '''
     def __init__(self):
