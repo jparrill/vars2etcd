@@ -98,4 +98,4 @@ Then execute it:
 ```
 
 ## References
-Thanks to (Felipe Martin)[https://github.com/fmartingr] for helping me :P
+Thanks to [Felipe Martin](https://github.com/fmartingr) for helping me :P
