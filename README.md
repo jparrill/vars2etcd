@@ -74,8 +74,6 @@ Uploading parameters to etcd...
 
 That means that we have new keys installed on ETCD, if the parser tries to upload a key-value that already exists, will not be overrided, just will warn you trough log file and stdout that already exists
 
-_Note: The parameter files are a sample from the real **global-cloud-bash** repository, use the original repository to work on a real environment_
-
 ## How to try in local
 Use docker to start a ETCD container and publish it there
 ```
