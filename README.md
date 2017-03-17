@@ -2,17 +2,21 @@
 This script will take 1 argument, that may contain all variables in bash that one OSP region will need to be deployed (sample):
 
 ```
-REGION_NAME="BOAE"
-DEFAULT_AZ="${REGION_NAME}-1"
-AZ2="${REGION_NAME}-2"
-AZ3="${REGION_NAME}-3"
-OS_SERVICE_TOKEN="23ccdecfd7cbcfbbf36f"
-CONFIG_FILE="/home/osp-test/boae.json
+DOMAIN="example.com"
+PUBLIC_DOMAIN="public.example.com"
+PROXY="22.75.135.87:80"
+OS_CTL_NET="10.10.0"
+INBAND_MGMT_NET="10.10.128"
+REPO_SERVER="${INBAND_MGMT_NET}.72"
+VIP_FRONTEND="${INBAND_MGMT_NET}.101"
+VIP_SDN="${INBAND_MGMT_NET}.230"
+VIP_DB="${OS_CTL_NET}.43"
+VIP_LDAP="${INBAND_MGMT_NET}.44"
 LDAP_URL="ldap://$VIP_LDAP"
 ```
 
 ## How it works
-The script need to have installed **python-etcd** on your system and also the parameters files from **global-cloud-bash** repository.
+The script need to have installed **python-etcd** on your system as requirement.
 
 - Input
 ```
@@ -24,23 +28,46 @@ The script need to have installed **python-etcd** on your system and also the pa
 Start Logging
 Reading parameters file...
 Logging parameters
+Setting Top Namespace
 Uploading parameters to etcd...
-  Key BOAE/NUAGE_VSD_2 already exists as vmboae00vsdp02-oscp
-  Key BOAE/NUAGE_VSD_3 already exists as vmboae00vsdp03-oscp
-  Key BOAE/STF_NET_VIRTUAL already exists as 10.24.0
-  Key BOAE/BE_CLUSTER_NAME already exists as backend
+	Key 'SAMPLE'/REPO_SERVER already exists as 10.10.128.72
+	Key 'SAMPLE'/DOMAIN already exists as 10.10.128.72
+	Key 'SAMPLE'/VIP_DB already exists as 10.10.0.43
+	Key 'SAMPLE'/OS_CTL_NET already exists as 10.10.0.43
+	Key 'SAMPLE'/VIP_LDAP already exists as 10.10.128.44
+	Key 'SAMPLE'/VIP_SDN already exists as 10.10.128.230
+	Key 'SAMPLE'/VIP_FRONTEND already exists as 10.10.128.101
+	Key 'SAMPLE'/LDAP_URL already exists as ldap://10.10.128.44
+	Key 'SAMPLE'/TOP_NS already exists as ldap://10.10.128.44
+	Key 'SAMPLE'/PROXY already exists as ldap://10.10.128.44
+	Key 'SAMPLE'/PUBLIC_DOMAIN already exists as ldap://10.10.128.44
+	Key 'SAMPLE'/INBAND_MGMT_NET already exists as ldap://10.10.128.44
 ```
 
 - Logfile (etcd_parser.log)
 ```
-2017-03-16 16:10:12,027 root  INFO     Reading parameters file <open file '/home/jparrill/ownCloud/RedHat/RedHat_Consulting/Produban/repos/global-cloud-ansible/utils/osp/etcd_parser/parameters-boae.cfg', mode 'r' at 0x7f5a0dad4ae0>
-2017-03-16 16:10:12,036 urllib3.connectionpool INFO     Starting new HTTP connection (1): 127.0.0.1
-2017-03-16 16:10:12,037 root  INFO     Setting new key BOAE/CON_NODE_3_HOSTNAME_AZ2 as vmboae00osconp06
-2017-03-16 16:10:12,048 root  INFO     Setting new key BOAE/CON_NODE_3_HOSTNAME_AZ3 as vmboae00osconp09
-2017-03-16 16:10:12,052 root  INFO     Setting new key BOAE/KEYSTONE_CN as keystone.boae.gsnetcloud.corp
-2017-03-16 16:10:12,054 root  INFO     Setting new key BOAE/CONFIG_FILE as /home/osp-test/boae.json
-2017-03-16 16:10:12,058 root  INFO     Setting new key BOAE/BE_NODE_2_HOSTNAME as vmboae00osdbp02
-2017-03-16 16:10:12,060 root  INFO     Setting new key BOAE/HA_CLUSTER_NAME as haproxy
+2017-03-17 13:02:04,202 root  INFO     Etcd Parsing started...
+2017-03-17 13:02:04,202 root  INFO     Reading parameters file <open file '/home/jparrill/projects/shellvars2etcd/sample_params_file.cfg', mode 'r' at 0x7fe430f34930>
+2017-03-17 13:02:04,202 root  INFO     Getting variables from bash file
+2017-03-17 13:02:04,202 root  INFO     REPO_SERVER=10.10.128.72
+2017-03-17 13:02:04,202 root  INFO     DOMAIN=example.com
+2017-03-17 13:02:04,202 root  INFO     VIP_DB=10.10.0.43
+2017-03-17 13:02:04,202 root  INFO     OS_CTL_NET=10.10.0
+2017-03-17 13:02:04,203 root  INFO     VIP_LDAP=10.10.128.44
+2017-03-17 13:02:04,203 root  INFO     VIP_SDN=10.10.128.230
+2017-03-17 13:02:04,203 root  INFO     VIP_FRONTEND=10.10.128.101
+2017-03-17 13:02:04,203 root  INFO     LDAP_URL=ldap://10.10.128.44
+2017-03-17 13:02:04,203 root  INFO     INBAND_MGMT_NET=10.10.128
+2017-03-17 13:02:04,204 root  INFO     PROXY=22.75.135.87:80
+2017-03-17 13:02:04,204 root  INFO     PUBLIC_DOMAIN=public.example.com
+2017-03-17 13:02:04,205 root  WARNING  There is not set a TOP_NS variable con parameters file, using /
+2017-03-17 13:02:04,205 urllib3.connectionpool INFO     Starting new HTTP connection (1): 127.0.0.1
+2017-03-17 13:02:04,207 root  INFO     Setting new key /REPO_SERVER as ${INBAND_MGMT_NET}.72
+2017-03-17 13:02:04,209 root  INFO     Setting new key /DOMAIN as example.com
+2017-03-17 13:02:04,213 root  INFO     Setting new key /VIP_DB as ${OS_CTL_NET}.43
+2017-03-17 13:02:04,216 root  INFO     Setting new key /OS_CTL_NET as 10.10.0
+2017-03-17 13:02:04,218 root  INFO     Setting new key /VIP_LDAP as ${INBAND_MGMT_NET}.44
+2017-03-17 13:02:04,219 root  INFO     Setting new key /VIP_SDN as ${INBAND_MGMT_NET}.230
 ...
 ...
 ```
@@ -67,7 +94,7 @@ def __init__(self):
 
 Then execute it:
 ```
-./etcd_parser.py parameters-boae.cfg
+./etcd_parser.py sample_params_file.cfg
 ```
 
 ## References

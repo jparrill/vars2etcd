@@ -11,7 +11,7 @@ import etcd
 import requests
 
 class BashDict(dict):
-    variable_regex = '(\$\{?([\w\d\-\_\,]+)\}?)'
+    variable_regex = '(\$\{?([\w\d\-\_\,\.]+)\}?)'
     def _parse_variables(self, value):
         if '$' in value:
             def replace(match):
@@ -70,9 +70,9 @@ class EtcdParser(object):
             print 'Logging parameters'
             for key, value in self.d.items():
                 if '$' in value:
-                    logging.debug('{}={}'.format(key, self.d.get(key)))
+                    logging.info('{}={}'.format(key, self.d.get(key)))
                 else:
-                    logging.debug('{}={}'.format(key, value))
+                    logging.info('{}={}'.format(key, value))
 
     def logger(self):
         '''
@@ -83,7 +83,6 @@ class EtcdParser(object):
         log_file = self.file_path + '/' + self.etcd_parser_log
         logging.getLogger('').handlers = []
         if not os.path.exists(log_file):
-            print log_file
             open(log_file, 'a').close()
             logging.basicConfig(
                filename=log_file,
@@ -104,15 +103,19 @@ class EtcdParser(object):
         Upload all variables stored on the source dict on a
         REGION_NAME/Key=Value
         '''
+        print 'Setting Top Namespace'
+        try:
+            top_ns = self.d.get('TOP_NS')
+        except:
+            top_ns = ''
+            logging.warn('There is not set a TOP_NS variable con parameters file, using /')
 
-        top_ns = self.d.get('REGION_NAME')
         kwargs = {
             'host': self.etcd_host,
             'port': self.etcd_port,
         }
 
         print 'Uploading parameters to etcd...'
-
         client = etcd.Client(**kwargs)
 
         for inner_key, value in self.d.items():
@@ -125,13 +128,14 @@ class EtcdParser(object):
             except etcd.EtcdKeyNotFound:
                 ## If the key pair do not exists, just post it
                 if '$' in value:
-                    key = '{}/{}'.format(top_ns, inner_key)
-                    value = self.d.get(inner_key)
+                    up_key = '{}/{}'.format(top_ns, inner_key)
+                    up_val = self.d.get(inner_key)
                 else:
-                    key = '{}/{}'.format(top_ns, inner_key)
+                    up_key = '{}/{}'.format(top_ns, inner_key)
+                    up_vale = value
 
                 logging.info('Setting new key {}/{} as {}'.format(top_ns, inner_key, value))
-                set_res = client.write(key, value)
+                set_res = client.write(up_key,  up_val)
 
 if __name__ == "__main__":
     EtcdParser()
