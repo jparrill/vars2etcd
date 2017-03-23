@@ -105,7 +105,7 @@ class EtcdParser(object):
         '''
         print 'Setting Top Namespace'
         try:
-            top_ns = self.d.get('TOP_NS')
+            top_ns = self.d.get('TOP_NS').strip("'")
         except:
             top_ns = ''
             logging.warn('There is not set a TOP_NS variable con parameters file, using /')
@@ -120,10 +120,21 @@ class EtcdParser(object):
 
         for inner_key, value in self.d.items():
             try:
-                ## Getting ETCD top namespace
+                logging.info('')
+                logging.info('Getting {}/{}'.format(top_ns, inner_key))
                 get_val = client.get('{}/{}'.format(top_ns, inner_key)).value
-                print '\tKey {}/{} already exists as {}'.format(top_ns, inner_key, get_val)
-                logging.info('Key {}/{} already exists as {}'.format(top_ns, inner_key, get_val))
+                new_val = self.d.get(inner_key)
+                logging.info('etcd: {}'.format(get_val))
+                logging.info('Gilab: {}'.format(new_val))
+                if get_val != new_val:
+                    logging.warn('Warning: Parameters between Gitlab and ETCD are not the same')
+                    logging.warn('\tParameter: {}'.format(inner_key))
+                    logging.warn('\tShell: {}'.format(new_val))
+                    logging.warn('\tetcd: {}'.format(get_val))
+                    print 'Warning: Parameters between Gitlab and ETCD are not the same'
+                    print '\tParameter: {}'.format(inner_key)
+                    print '\tShell: {}'.format(new_val)
+                    print '\tetcd: {}'.format(get_val)
 
             except etcd.EtcdKeyNotFound:
                 ## If the key pair do not exists, just post it
@@ -132,10 +143,10 @@ class EtcdParser(object):
                     up_val = self.d.get(inner_key)
                 else:
                     up_key = '{}/{}'.format(top_ns, inner_key)
-                    up_vale = value
+                    up_val = value
 
                 logging.info('Setting new key {}/{} as {}'.format(top_ns, inner_key, value))
-                set_res = client.write(up_key,  up_val)
+                set_res = client.write(up_key, up_val)
 
 if __name__ == "__main__":
     EtcdParser()
