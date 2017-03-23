@@ -130,11 +130,11 @@ class EtcdParser(object):
                     logging.warn('Warning: Parameters between Gitlab and ETCD are not the same')
                     logging.warn('\tParameter: {}'.format(inner_key))
                     logging.warn('\tShell: {}'.format(new_val))
-                    logging.warn('\tetcd: {}'.format(get_val))
+                    logging.warn('\tEtcd: {}'.format(get_val))
                     print 'Warning: Parameters between Gitlab and ETCD are not the same'
                     print '\tParameter: {}'.format(inner_key)
                     print '\tShell: {}'.format(new_val)
-                    print '\tetcd: {}'.format(get_val)
+                    print '\tEtcd: {}'.format(get_val)
 
             except etcd.EtcdKeyNotFound:
                 ## If the key pair do not exists, just post it
@@ -145,7 +145,7 @@ class EtcdParser(object):
                     up_key = '{}/{}'.format(top_ns, inner_key)
                     up_val = value
 
-                logging.info('Setting new key {}/{} as {}'.format(top_ns, inner_key, value))
+                logging.info('Setting new key {}/{} as {}'.format(top_ns, inner_key, up_val))
                 set_res = client.write(up_key, up_val)
 
 if __name__ == "__main__":
