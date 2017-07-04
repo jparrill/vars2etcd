@@ -1,4 +1,4 @@
-#!/usr/bddin/python
+#!/usr/bin/python
 
 import yaml
 import logging
