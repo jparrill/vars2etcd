@@ -1,0 +1,57 @@
+---
+environment_variables:
+  OS_REGION_NAME: RegionOne
+  OS_VOLUME_API_VERSION: 2
+  OS_ENDPOINT_TYPE: internal
+  CINDER_ENDPOINT_TYPE: internalURL
+  OS_USERNAME: admin
+  OS_PASSWORD: "{{ admin_password }}"
+  OS_PROJECT_NAME: admin
+  OS_TENANT_NAME: admin
+  OS_AUTH_URL: "http://{{ internal_vip }}:35357/v2.0"
+
+create_availability_zones: True
+add_host_availability_zone: True
+
+availability_zones:
+  HA_LAB_1:
+    name: HA_FAP_1
+    availability_zone: EL_FAP-I-1
+  HA_LAB_2:
+    name: HA_FAP_2
+    availability_zone: EL_FAP-I-2
+  HA_LAB_3:
+    name: HA_FAP_3
+    availability_zone: EL_FAP-I-3
+
+ntp_clients_ip:
+  - 20.48.26.11
+
+default_password: test01
+emergency_user: sos1
+new_installation: True
+external_haproxy_enabled: True
+keystone_apache_wsgi: False
+
+ssl_enabled: True
+ssl_horizon_enabled: True
+
+netapp_storage_protocol: nfs
+netapp_cinder_shares:
+  - 10.38.52.22:/TEST01_ES_CLOUD_cinder1
+  - 10.38.52.21:/TEST02_ES_CLOUD_cinder1
+  - 10.38.52.24:/TEST03_ES_CLOUD_cinder1
+netapp_cinder_backup_shares:
+  - 10.38.52.32:/TESTBCK_ES_CLOUD_
+netapp_glance_shares:
+  share1:
+    name: NetApp1
+    url: 10.38.52.33:/VES1T0Z1_ES_CLOUD_glance
+    path: /var/lib/glance/images
+    type: nfs
+
+country: es
+reverse_zone: 48.20.in-addr.arpa
+IPAM_network: 10.38.52.0/18
+ns_infoblox_group: DNS_GRID
+admin_user: admin
