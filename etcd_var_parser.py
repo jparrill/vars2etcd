@@ -1,4 +1,4 @@
-#!/usr/bddin/python
+#!/usr/bin/python
 
 import yaml
 import json
@@ -246,7 +246,6 @@ class EtcdParser(object):
         '''
         response = False
 
-        old_val = {}
         try:
             old_fold = etcd_handler.get(key).key
             old_val = etcd_handler.get(key).value
