@@ -1,6 +1,8 @@
 #!/usr/bddin/python
 
 import yaml
+import json
+import pprint 
 import logging
 import etcd
 import os
@@ -100,16 +102,17 @@ class YamlVars(object):
                 self.yaml_formatter(v, concat)
             elif isinstance(v, list):
                 for key in v:
-                    concat = parent + k + '/' + key
+                    concat = parent + k + '/' + str(v.index(key))
                     # if There is an Array at the last tree hierarchi
                     # I create an empty folder to emulate an array
                     logging.info('Folder: {}'.format(concat))
-                    conflict = self.eload.etcd_check_conflict(self.etcd_handler, concat, None, True)
+                    conflict = self.eload.etcd_check_conflict(self.etcd_handler, concat, key, True)
                     if not conflict:
-                        self.eload.etcd_uploader(self.etcd_handler, concat, None, True)
+                        #self.eload.etcd_uploader(self.etcd_handler, concat, None, True)
+                        self.eload.etcd_uploader(self.etcd_handler, concat, key)
 
             else:
-                concat = parent + k
+                concat = parent + str(k)
                 logging.info('{} = {}'.format(concat, v))
                 conflict = self.eload.etcd_check_conflict(self.etcd_handler, concat, v)
 
@@ -199,6 +202,44 @@ class EtcdParser(object):
                 print "Adding - Key: {} Value: {}".format(key, value)
             etcd_handler.write(key, value)
 
+    def _parse_node(self, node):
+        path = {}
+        if node.get('dir', False):
+            for n in node.get('nodes', []):
+                path[n['key'].split('/')[-1]] = self._parse_node(n)
+
+        else:
+            path = node['value']
+
+        return path
+
+    def etcd_get_tree(self, etcd_handler, key='/'):
+        '''
+        This function will return a dict coming from ETCD path
+        '''
+        value = {}
+        try:
+            data = etcd_handler.read(key, recursive=True, sorted=True)
+
+        except etcd.EtcdKeyNotFound:
+            return response
+
+        try:
+            for element in data._children:
+                value[element['key']] = self._parse_node(element)
+            
+            pprint.pprint(value)
+
+            if 'errorCode' in data._children:
+                # Here return an error when an unknown entry responds
+                value = "ENOENT"
+        except:
+            raise
+            pass
+
+        return value
+        
+
     def etcd_check_conflict(self, etcd_handler, key, value, _dir=False):
         '''
         This function will check if your key exists already on ETCD DB
@@ -245,26 +286,32 @@ class EtcdParser(object):
         return response
 
 
-@click.command()
+@click.group()
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Debug mode')
+@click.pass_context
+def cli(ctx, verbose):
+    ctx.obj['verbose'] = ctx.params['verbose']  
+
+@click.command()
 @click.option('-t', '--file-type', type=click.Choice(['yml', 'sh']), help='File type to load')
 @click.argument('entryfile')
-def cli(verbose, file_type, entryfile):
-    if verbose:
-        click.echo("Verbose mode On")
+@click.pass_context
+def upload(ctx, file_type, entryfile):
+    if ctx.obj['verbose']:
+        click.echo('Verbose mode is %s' % (ctx.obj['verbose'] and 'on' or 'off'))
         click.echo("File Type: {}".format(file_type))
         click.echo("Entryfile: {}".format(entryfile))
         click.echo()
 
     if file_type == 'sh':
         # Shell
-        ShlVar = ShellVars(verbose)
+        ShlVar = ShellVars(ctx.obj['verbose'])
         ShlVar.shell_loader(entryfile)
         ShlVar.shell_formatter()
 
     elif file_type == 'yml':
         # Yaml
-        YmlVar = YamlVars(verbose)
+        YmlVar = YamlVars(ctx.obj['verbose'])
         MAP = YmlVar.yaml_loader(entryfile)
         print 'Logging parameters'
         YmlVar.yaml_formatter(MAP, "/")
@@ -273,5 +320,38 @@ def cli(verbose, file_type, entryfile):
         raise ValueError('File type {} not supported'.format(file_type))
 
 
+@click.command()
+@click.option('-t', '--file-type', type=click.Choice(['yml', 'sh']), help='File type to load')
+@click.argument('entryfile')
+@click.pass_context
+def compare(ctx, file_type, entryfile):
+    if ctx.obj['verbose']:
+        click.echo('Verbose mode is %s' % (ctx.obj['verbose'] and 'on' or 'off'))
+        click.echo("File Type: {}".format(file_type))
+        click.echo("Entryfile: {}".format(entryfile))
+        click.echo()
+
+    if file_type == 'yml':
+        # Yaml
+        YmlVar = YamlVars(ctx.obj['verbose'])
+        yaml_map = YmlVar.yaml_loader(entryfile)
+        etcd_map = YmlVar.eload.etcd_get_tree(YmlVar.etcd_handler)
+
+        pprint.pprint(yaml_map)
+        print
+        pprint.pprint(etcd_map)
+
+        if yaml_map != etcd_map:
+            print 'TEST_FAILED'
+
+        else:
+            print 'PENE'
+
+
+    else:
+        raise ValueError('File type {} not supported'.format(file_type))
+
 if __name__ == '__main__':
-    cli()
+    cli.add_command(upload)
+    cli.add_command(compare)
+    cli(obj={})
