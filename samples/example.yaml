@@ -23,6 +23,11 @@ availability_zones:
   HA_LAB_3:
     name: HA_FAP_3
     availability_zone: EL_FAP-I-3
+  HA_LAB_4:
+    - 100.130.130.22
+    - 100.130.130.23
+    - 100.130.130.24
+    - 100
 
 ntp_clients_ip:
   - 20.48.26.11
