@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bddin/python
 
 import yaml
 import json
@@ -83,7 +83,9 @@ class YamlVars(object):
         This function will receive a yaml file path and will return a dict
         '''
         content = {}
-        print 'Reading parameters file...'
+        if self.verbose:
+            print 'Reading parameters file...'
+
         logging.info('Reading parameters file {}'.format(yaml_file))
 
         with open(yaml_file, 'r') as stream:
@@ -160,7 +162,9 @@ class EtcdParser(object):
         Function to log all actions
         '''
         self.etcd_parser_log = 'etcd_parser.log'
-        print 'Start Logging'
+        if self.verbose:
+            print 'Start Logging'
+
         log_file = self.file_path + '/' + self.etcd_parser_log
         logging.getLogger('').handlers = []
         if not os.path.exists(log_file):
@@ -202,6 +206,12 @@ class EtcdParser(object):
                 print "Adding - Key: {} Value: {}".format(key, value)
             etcd_handler.write(key, value)
 
+    def etcd_delete(self, etcd_handler, key, folder=False):
+        '''
+        Function to delete a key or folder on ETCD
+        '''
+        etcd_handler.delete(key, folder, folder)
+
     def _parse_node(self, node):
         path = {}
         if node.get('dir', False):
@@ -213,11 +223,13 @@ class EtcdParser(object):
 
         return path
 
-    def etcd_get_tree(self, etcd_handler, key='/'):
+    def etcd_get_tree(self, etcd_handler, key):
         '''
         This function will return a dict coming from ETCD path
         '''
+        final_tree = {}
         value = {}
+
         try:
             data = etcd_handler.read(key, recursive=True, sorted=True)
 
@@ -226,13 +238,12 @@ class EtcdParser(object):
 
         try:
             for element in data._children:
-                value[element['key']] = self._parse_node(element)
+                value[element['key'].replace(key, '')] = self._parse_node(element)
             
-            pprint.pprint(value)
-
             if 'errorCode' in data._children:
                 # Here return an error when an unknown entry responds
                 value = "ENOENT"
+
         except:
             raise
             pass
@@ -246,6 +257,7 @@ class EtcdParser(object):
         '''
         response = False
 
+        old_val = {}
         try:
             old_fold = etcd_handler.get(key).key
             old_val = etcd_handler.get(key).value
@@ -293,9 +305,10 @@ def cli(ctx, verbose):
 
 @click.command()
 @click.option('-t', '--file-type', type=click.Choice(['yml', 'sh']), help='File type to load')
+@click.option('-p', '--prefix', default='/data/', help='Top Namespace to upload yaml tree')
 @click.argument('entryfile')
 @click.pass_context
-def upload(ctx, file_type, entryfile):
+def upload(ctx, file_type, entryfile, prefix):
     if ctx.obj['verbose']:
         click.echo('Verbose mode is %s' % (ctx.obj['verbose'] and 'on' or 'off'))
         click.echo("File Type: {}".format(file_type))
@@ -312,8 +325,10 @@ def upload(ctx, file_type, entryfile):
         # Yaml
         YmlVar = YamlVars(ctx.obj['verbose'])
         MAP = YmlVar.yaml_loader(entryfile)
-        print 'Logging parameters'
-        YmlVar.yaml_formatter(MAP, "/")
+        if ctx.obj['verbose']:
+            print 'Logging parameters'
+            print
+        YmlVar.yaml_formatter(MAP, prefix)
 
     else:
         raise ValueError('File type {} not supported'.format(file_type))
@@ -332,19 +347,33 @@ def compare(ctx, file_type, entryfile):
 
     if file_type == 'yml':
         # Yaml
+        compare_basepath = '/_compare/'
+        data_basepath = '/data/'
         YmlVar = YamlVars(ctx.obj['verbose'])
-        yaml_map = YmlVar.yaml_loader(entryfile)
-        etcd_map = YmlVar.eload.etcd_get_tree(YmlVar.etcd_handler)
+        etcd_map = YmlVar.eload.etcd_get_tree(YmlVar.etcd_handler, data_basepath)
+        
+        # Create structure bellow compare_basepath to copmare in the same conditions
+        # I have no time to modify in the right way the lists coming from etcd, that
+        # the representation is a 0: 'value'. 
+        yaml_raw_map = YmlVar.yaml_loader(entryfile)
+        YmlVar.yaml_formatter(yaml_raw_map, compare_basepath)
+        yaml_map = YmlVar.eload.etcd_get_tree(YmlVar.etcd_handler, compare_basepath)
+        
+        # Clean /_compare folder
+        YmlVar.eload.etcd_delete(YmlVar.etcd_handler, compare_basepath, True)
 
-        pprint.pprint(yaml_map)
-        print
-        pprint.pprint(etcd_map)
+        if ctx.obj['verbose']:
+            print 'YAML:'
+            pprint.pprint(yaml_map)
+
+            print 'ETCD:'
+            pprint.pprint(etcd_map)
 
         if yaml_map != etcd_map:
-            print 'TEST_FAILED'
+            raise ValueError('Yaml and ETCD not contain the same data')
 
         else:
-            print 'PENE'
+            print 'ETCD and YAML file are equal'
 
 
     else:
