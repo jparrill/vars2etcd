@@ -17,8 +17,9 @@ class ShellVars(object):
     Class to load and format shell variables
     """
 
-    def __init__(self, verbose=False):
+    def __init__(self, verbose=False, force=False):
         self.verbose = verbose
+        self.force = force
         self.eload = EtcdParser(self.verbose)
         self.etcd_handler = self.eload.etcd_conn()
         self.file_path = self.eload.file_path
@@ -64,7 +65,7 @@ class ShellVars(object):
             concat = '{}/{}'.format(top_ns, inner_key)
             conflict = self.eload.etcd_check_conflict(self.etcd_handler, concat, value)
 
-            if not conflict:
+            if not conflict or self.force:
                 self.eload.etcd_uploader(self.etcd_handler, concat, value)
 
 
