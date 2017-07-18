@@ -207,11 +207,15 @@ class EtcdParser(object):
                 print "Adding - Key: {} Value: {}".format(key, value)
             etcd_handler.write(key, value)
 
-    def etcd_delete(self, etcd_handler, key, folder=False):
+    def etcd_delete(self, etcd_handler, key, folder=False, recursive=False):
         '''
         Function to delete a key or folder on ETCD
         '''
-        etcd_handler.delete(key, folder, folder)
+        if self.verbose:
+            print "Deleting - Key: {}".format(key, )
+
+        logging.debug("Deleting - Key: {}".format(key))
+        etcd_handler.delete(key, folder, recursive)
 
     def _parse_node(self, node):
         path = {}
@@ -369,12 +373,14 @@ def compare(ctx, file_type, entryfile):
         yaml_map = YmlVar.eload.etcd_get_tree(YmlVar.etcd_handler, compare_basepath)
         
         # Clean /_compare folder
-        YmlVar.eload.etcd_delete(YmlVar.etcd_handler, compare_basepath, True)
+        YmlVar.eload.etcd_delete(YmlVar.etcd_handler, compare_basepath, True, True)
 
         if ctx.obj['verbose']:
+            print
             print 'YAML:'
             pprint.pprint(yaml_map)
 
+            print
             print 'ETCD:'
             pprint.pprint(etcd_map)
 
@@ -382,7 +388,8 @@ def compare(ctx, file_type, entryfile):
             raise ValueError('Yaml and ETCD not contain the same data')
 
         else:
-            print 'ETCD and YAML file are equal'
+            print
+            print 'Status: ETCD and YAML file are equal'
 
 
     else:
