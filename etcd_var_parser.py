@@ -73,8 +73,9 @@ class YamlVars(object):
     Class to load and format yaml variables
     """
 
-    def __init__(self, verbose=False):
+    def __init__(self, verbose=False, force=False):
         self.verbose = verbose
+        self.force = force
         self.eload = EtcdParser(self.verbose)
         self.etcd_handler = self.eload.etcd_conn()
 
@@ -109,8 +110,7 @@ class YamlVars(object):
                     # I create an empty folder to emulate an array
                     logging.info('Folder: {}'.format(concat))
                     conflict = self.eload.etcd_check_conflict(self.etcd_handler, concat, key, True)
-                    if not conflict:
-                        #self.eload.etcd_uploader(self.etcd_handler, concat, None, True)
+                    if not conflict or self.force:
                         self.eload.etcd_uploader(self.etcd_handler, concat, key)
 
             else:
@@ -118,7 +118,7 @@ class YamlVars(object):
                 logging.info('{} = {}'.format(concat, v))
                 conflict = self.eload.etcd_check_conflict(self.etcd_handler, concat, v)
 
-                if not conflict:
+                if not conflict or self.force:
                     self.eload.etcd_uploader(self.etcd_handler, concat, v)
 
 
@@ -304,38 +304,46 @@ def cli(ctx, verbose):
     ctx.obj['verbose'] = ctx.params['verbose']  
 
 @click.command()
-@click.option('-t', '--file-type', type=click.Choice(['yml', 'sh']), help='File type to load')
+@click.option('-t', '--file-type', type=click.Choice(['yml', 'sh']), nargs=1, help='File type to load')
 @click.option('-p', '--prefix', default='/data/', help='Top Namespace to upload yaml tree')
+@click.option('-f', '--force', is_flag=True, default=False, help='Override the ETCD parameters')
 @click.argument('entryfile')
 @click.pass_context
-def upload(ctx, file_type, entryfile, prefix):
+def upload(ctx, file_type, entryfile, prefix, force):
     if ctx.obj['verbose']:
         click.echo('Verbose mode is %s' % (ctx.obj['verbose'] and 'on' or 'off'))
         click.echo("File Type: {}".format(file_type))
         click.echo("Entryfile: {}".format(entryfile))
         click.echo()
+    
+    if force:
+        click.echo('WARNING: Override mode on')
 
     if file_type == 'sh':
         # Shell
-        ShlVar = ShellVars(ctx.obj['verbose'])
+        click.echo('Uploading parameters from Bash file...')
+        ShlVar = ShellVars(ctx.obj['verbose'], force)
         ShlVar.shell_loader(entryfile)
         ShlVar.shell_formatter()
+        click.echo('Done!')
 
     elif file_type == 'yml':
         # Yaml
-        YmlVar = YamlVars(ctx.obj['verbose'])
+        click.echo('Uploading parameters from YML file...')
+        YmlVar = YamlVars(ctx.obj['verbose'], force)
         MAP = YmlVar.yaml_loader(entryfile)
         if ctx.obj['verbose']:
             print 'Logging parameters'
             print
         YmlVar.yaml_formatter(MAP, prefix)
+        click.echo('Done!')
 
     else:
         raise ValueError('File type {} not supported'.format(file_type))
 
 
 @click.command()
-@click.option('-t', '--file-type', type=click.Choice(['yml', 'sh']), help='File type to load')
+@click.option('-t', '--file-type', type=click.Choice(['yml', 'sh']), nargs=1, help='File type to load')
 @click.argument('entryfile')
 @click.pass_context
 def compare(ctx, file_type, entryfile):
@@ -379,7 +387,35 @@ def compare(ctx, file_type, entryfile):
     else:
         raise ValueError('File type {} not supported'.format(file_type))
 
+@click.command()
+@click.option('-t', '--file-type', type=click.Choice(['yml', 'sh']), nargs=1, help='File type to load')
+@click.option('-o', '--output-file', nargs=1, help='Output File')
+@click.pass_context
+def export(ctx, output_file, file_type):
+    if ctx.obj['verbose']:
+        click.echo('Verbose mode is %s' % (ctx.obj['verbose'] and 'on' or 'off'))
+        click.echo("File Type: {}".format(file_type))
+        click.echo("Ouput File: {}".format(output_file))
+        click.echo()
+
+    if file_type == 'yml':
+        # Yaml
+        data_basepath = '/data/'
+        YmlVar = YamlVars(ctx.obj['verbose'])
+        etcd_map = YmlVar.eload.etcd_get_tree(YmlVar.etcd_handler, data_basepath)
+
+        if ctx.obj['verbose']:
+            print 'ETCD:'
+            pprint.pprint(etcd_map)
+
+        with open(output_file, 'w') as yaml_file:
+            yaml.safe_dump(etcd_map, yaml_file, default_flow_style=False)
+
+    else:
+        raise ValueError('File type {} not supported'.format(file_type))
+
 if __name__ == '__main__':
     cli.add_command(upload)
     cli.add_command(compare)
+    cli.add_command(export)
     cli(obj={})
