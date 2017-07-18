@@ -214,7 +214,7 @@ class EtcdParser(object):
         if self.verbose:
             print "Deleting - Key: {}".format(key, )
 
-        logging.debug("Deleting - Key: {}".format(key))
+        logging.info("Deleting - Key: {}".format(key))
         etcd_handler.delete(key, folder, recursive)
 
     def _parse_node(self, node):
@@ -418,6 +418,11 @@ def export(ctx, output_file, file_type):
 
         with open(output_file, 'w') as yaml_file:
             yaml.safe_dump(etcd_map, yaml_file, default_flow_style=False)
+
+        logging.info('')
+        logging.info('File Generated: {}'.format(output_file))
+        print
+        print 'File Generated: {}'.format(output_file)
 
     else:
         raise ValueError('File type {} not supported'.format(file_type))
