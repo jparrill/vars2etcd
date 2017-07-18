@@ -416,6 +416,9 @@ def export(ctx, output_file, file_type):
             print 'ETCD:'
             pprint.pprint(etcd_map)
 
+        logging.info('ETCD Key-Value Map: ')
+        logging.info(etcd_map)
+
         with open(output_file, 'w') as yaml_file:
             yaml.safe_dump(etcd_map, yaml_file, default_flow_style=False)
 
